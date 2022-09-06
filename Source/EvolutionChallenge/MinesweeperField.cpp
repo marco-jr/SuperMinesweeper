@@ -6,14 +6,13 @@
 #include "GameOverWidget.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "MinesweeperGameWidget.h"
+#include "MinesweeperGameInstance.h"
 
 // Sets default values
 AMinesweeperField::AMinesweeperField()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
-
-
 }
 
 // Called when the game starts or when spawned
@@ -35,7 +34,51 @@ void AMinesweeperField::BeginPlay()
 		MinesweeperGameWidget->AddToViewport();
 	}
 
+	if (Cast<UMinesweeperGameInstance>(GetWorld()->GetGameInstance()))
+	{
+		MinesweeperGameInstance = Cast<UMinesweeperGameInstance>(GetWorld()->GetGameInstance());
+	}
+
 	StartGame();
+}
+
+void AMinesweeperField::Help()
+{
+	if (MinesweeperGameInstance)
+	{
+		if (MinesweeperGameInstance->WebSocket->IsConnected())
+		{
+			MinesweeperGameInstance->WebSocket->Send("help");
+		}
+	}
+}
+
+void AMinesweeperField::Open(AMinesweeperCell* minesweeperCell)
+{
+	if (MinesweeperGameInstance && minesweeperCell)
+	{
+		if (MinesweeperGameInstance->WebSocket->IsConnected())
+		{
+			int32 _X = minesweeperCell->CellPosition.X;
+			int32 _Y = minesweeperCell->CellPosition.Y;
+			FString _Message = "open ";
+			_Message.AppendInt(_X);
+			_Message.Append(" ");
+			_Message.AppendInt(_Y);
+			MinesweeperGameInstance->WebSocket->Send(_Message);
+		}
+	}
+}
+
+void AMinesweeperField::Map()
+{
+	if (MinesweeperGameInstance)
+	{
+		if (MinesweeperGameInstance->WebSocket->IsConnected())
+		{
+			MinesweeperGameInstance->WebSocket->Send("map");
+		}
+	}
 }
 
 FVector AMinesweeperField::GetLocationFromCellIndex(int32 cellIndex)
@@ -185,9 +228,15 @@ void AMinesweeperField::CreateField()
 	{
 		for (int32 _CurrentCellIndex = 0; _CurrentCellIndex < CellsAmount; _CurrentCellIndex++)
 		{
+			int32 _Column = _CurrentCellIndex % FieldSize.X;
+			int32 _Row = _CurrentCellIndex / FieldSize.X;
+
 			AMinesweeperCell* _CreatedCell = GetWorld()->SpawnActor<AMinesweeperCell>(MinesweeperCellClass, GetLocationFromCellIndex(_CurrentCellIndex), FRotator(0,0,0));
 			_CreatedCell->AttachToActor(this, FAttachmentTransformRules::KeepWorldTransform);
 			_CreatedCell->MinesweeperFieldReference = this;
+			_CreatedCell->CellPosition = FVector2D(_Column, _Row);
+			_CreatedCell->OnCellClick.AddDynamic(this, &AMinesweeperField::Open);
+
 			if (MinesweeperGameWidget)
 			{
 				_CreatedCell->OnFlagged.AddDynamic(MinesweeperGameWidget, &UMinesweeperGameWidget::AddFlag);
@@ -249,7 +298,7 @@ void AMinesweeperField::StartGame()
 	}
 }
 
-void AMinesweeperField::GameOver()
+void AMinesweeperField::GameOver(AMinesweeperCell* minesweeperCell)
 {
 	if (GameOverWidget)
 	{
@@ -278,7 +327,7 @@ void AMinesweeperField::RestartGame()
 	StartGame();
 }
 
-void AMinesweeperField::VerifyPlayerWins()
+void AMinesweeperField::VerifyPlayerWins(AMinesweeperCell* minesweeperCell)
 {
 	if (GetPlayerWins())
 	{

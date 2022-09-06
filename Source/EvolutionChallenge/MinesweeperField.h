@@ -9,6 +9,7 @@
 class AMinesweeperCell;
 class UGameOverWidget;
 class UMinesweeperGameWidget;
+class UMinesweeperGameInstance;
 
 // Enum of possible cells directions
 UENUM(BlueprintType)
@@ -28,7 +29,7 @@ enum ECellDirection
 USTRUCT(BlueprintType)
 struct FVector2DInt
 {
-	GENERATED_USTRUCT_BODY();
+	GENERATED_BODY();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Values")
 		int32 X;
@@ -101,6 +102,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Logic")
 		bool bIsGameOver;
 
+	// The Game Instance reference
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Logic")
+		UMinesweeperGameInstance* MinesweeperGameInstance;
+
 // FUNCTIONS
 	// Called to get the location of a Cell by index
 	UFUNCTION()
@@ -141,7 +146,7 @@ public:
 
 	// Called when the player loses the game
 	UFUNCTION()
-		void GameOver();
+		void GameOver(AMinesweeperCell* minesweeperCell);
 
 	// Called when the player restart the game
 	UFUNCTION()
@@ -149,11 +154,23 @@ public:
 
 	// Called to verify if the player wins the game
 	UFUNCTION()
-		void VerifyPlayerWins();
+		void VerifyPlayerWins(AMinesweeperCell* minesweeperCell);
 
 	// Called to quit the game
 	UFUNCTION()
 		void ExitGame();
+
+	// Calls the help command
+	UFUNCTION()
+		void Help();
+
+	// Calls the open command
+	UFUNCTION()
+		void Open(AMinesweeperCell* minesweeperCell);
+
+	// Calls the map command
+	UFUNCTION()
+		void Map();
 
 protected:
 	// Called when the game starts or when spawned
